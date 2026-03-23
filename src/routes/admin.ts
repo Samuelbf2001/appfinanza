@@ -88,6 +88,56 @@ router.post('/test-connection', async (req: Request, res: Response) => {
   }
 });
 
+// --- CRM Diagnostics ---
+
+/** List available reports directly from the CRM adapter */
+router.post('/crm-reports', async (req: Request, res: Response) => {
+  try {
+    const { provider, credentials } = req.body;
+    const adapter = createCRMAdapter(provider, credentials);
+    const reports = await adapter.listAvailableReports();
+    res.json({ provider, reports });
+  } catch (error) {
+    logger.error('List CRM reports error', { error });
+    res.status(400).json({ error: 'Error listing CRM reports' });
+  }
+});
+
+/** Fetch pipeline metadata from CRM (stage names, IDs) */
+router.post('/crm-pipelines', async (req: Request, res: Response) => {
+  try {
+    const { provider, credentials, objectType } = req.body;
+    const adapter = createCRMAdapter(provider, credentials);
+    const pipelines = await adapter.fetchPipelines(objectType);
+    res.json({ provider, pipelines });
+  } catch (error) {
+    logger.error('Fetch CRM pipelines error', { error });
+    res.status(400).json({ error: 'Error fetching pipelines' });
+  }
+});
+
+/** Preview a report: fetch from CRM, summarize with AI, return without sending to WhatsApp */
+router.post('/preview-report', async (req: Request, res: Response) => {
+  try {
+    const { provider, credentials, reportId, startDate, endDate } = req.body;
+    const adapter = createCRMAdapter(provider, credentials);
+    const report = await adapter.fetchReport(reportId, { startDate, endDate });
+
+    const { AIEngine } = await import('../services/ai');
+    const ai = new AIEngine();
+    const aiResponse = await ai.summarizeReport(report);
+
+    res.json({
+      report,
+      aiSummary: aiResponse.summary,
+      suggestedActions: aiResponse.suggestedActions,
+    });
+  } catch (error) {
+    logger.error('Preview report error', { error });
+    res.status(400).json({ error: 'Error previewing report' });
+  }
+});
+
 // --- Report Logs ---
 
 router.get('/report-logs', async (req: Request, res: Response) => {

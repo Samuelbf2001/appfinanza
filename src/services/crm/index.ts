@@ -14,6 +14,6 @@ export function createCRMAdapter(provider: CRMProvider, credentials?: Record<str
   }
 }
 
-export { CRMAdapter } from './CRMAdapter';
+export { CRMAdapter, PipelineInfo } from './CRMAdapter';
 export { GoHighLevelAdapter } from './GoHighLevelAdapter';
 export { HubSpotAdapter } from './HubSpotAdapter';
