@@ -10,6 +10,15 @@ export interface IUser extends Document {
     accessToken?: string;
     locationId?: string;
   };
+  /** Browser credentials for AI agent dashboard access (encrypted at rest) */
+  browserCredentials?: {
+    email?: string;
+    password?: string; // Should be encrypted in production
+    locationUrl?: string; // GHL location URL
+    portalId?: string; // HubSpot portal ID
+  };
+  /** Preferred report extraction method */
+  extractionMode: 'api' | 'browser' | 'hybrid';
   schedules: Array<{
     reportTemplateId: string;
     config: ScheduleConfig;
@@ -43,6 +52,13 @@ const userSchema = new Schema<IUser>({
     accessToken: String,
     locationId: String,
   },
+  browserCredentials: {
+    email: String,
+    password: String,
+    locationUrl: String,
+    portalId: String,
+  },
+  extractionMode: { type: String, enum: ['api', 'browser', 'hybrid'], default: 'api' },
   schedules: [scheduleSchema],
   subscribedReports: [String],
   language: { type: String, default: 'es' },

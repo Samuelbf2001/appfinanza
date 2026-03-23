@@ -138,6 +138,64 @@ router.post('/preview-report', async (req: Request, res: Response) => {
   }
 });
 
+// --- Hybrid CRM Service (API + Browser Agent) ---
+
+/**
+ * List ALL available reports: API-based + browser-only.
+ * Browser-only reports require browserCredentials to be configured.
+ */
+router.post('/hybrid-reports', async (req: Request, res: Response) => {
+  try {
+    const { provider, apiCredentials, browserCredentials } = req.body;
+    const { HybridCRMService } = await import('../services/crm/HybridCRMService');
+    const service = new HybridCRMService(provider, apiCredentials, browserCredentials);
+    const reports = await service.listAllAvailableReports();
+    res.json({ provider, reports });
+  } catch (error) {
+    logger.error('List hybrid reports error', { error });
+    res.status(400).json({ error: 'Error listing reports' });
+  }
+});
+
+/**
+ * Fetch a report using the hybrid approach (API first, browser fallback).
+ * For browser-only reports, browserCredentials are required.
+ */
+router.post('/hybrid-fetch', async (req: Request, res: Response) => {
+  try {
+    const { provider, apiCredentials, browserCredentials, reportId, startDate, endDate } = req.body;
+    const { HybridCRMService } = await import('../services/crm/HybridCRMService');
+    const service = new HybridCRMService(provider, apiCredentials, browserCredentials);
+    const report = await service.fetchReport(reportId, { startDate, endDate });
+
+    const { AIEngine } = await import('../services/ai');
+    const ai = new AIEngine();
+    const aiResponse = await ai.summarizeReport(report);
+
+    res.json({
+      report,
+      aiSummary: aiResponse.summary,
+      suggestedActions: aiResponse.suggestedActions,
+    });
+  } catch (error) {
+    logger.error('Hybrid fetch error', { error });
+    res.status(400).json({ error: 'Error fetching report' });
+  }
+});
+
+/** Test both API and browser connections */
+router.post('/hybrid-test', async (req: Request, res: Response) => {
+  try {
+    const { provider, apiCredentials, browserCredentials } = req.body;
+    const { HybridCRMService } = await import('../services/crm/HybridCRMService');
+    const service = new HybridCRMService(provider, apiCredentials, browserCredentials);
+    const result = await service.testConnection();
+    res.json({ provider, ...result });
+  } catch (error) {
+    res.status(400).json({ error: 'Connection test failed' });
+  }
+});
+
 // --- Report Logs ---
 
 router.get('/report-logs', async (req: Request, res: Response) => {
